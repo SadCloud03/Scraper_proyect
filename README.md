@@ -4,4 +4,5 @@
 - requests
 - bs4
 - lxml 
+- Sqlite3
 

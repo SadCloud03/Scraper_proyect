@@ -61,7 +61,8 @@ if category_eleccion in category:
     new_url = category[category_eleccion]
     new_response = requests.get(new_url)
     
-    books = []
+    books_category = []
+    book_counter = 0
 
     while True:
         soup_new = BeautifulSoup(new_response.content, 'lxml')
@@ -95,7 +96,6 @@ if category_eleccion in category:
             description_place_tag_link = book_information.h3.a['href']
             description_place_tag_complete_link = urljoin(new_url, description_place_tag_link)
             description_response = requests.get(description_place_tag_complete_link)
-            time.sleep(1)
             soup_description = BeautifulSoup(description_response.content, 'lxml')
             product_tag = soup_description.find('div', id='product_description')
             if product_tag:
@@ -105,7 +105,7 @@ if category_eleccion in category:
             else:
                 description = 'No description'
 
-            books.append({
+            books_category.append({
                 'title' : title,
                 'author' : autor,
                 'stars' : stars,
@@ -113,6 +113,10 @@ if category_eleccion in category:
                 'stock' : disponibility,
                 'description' : description
             })
+            
+            book_counter += 1
+            print(book_counter, ': new Books')
+            
 
 
         # ----- si hay mas de una pagina en el apartado -----
@@ -121,11 +125,12 @@ if category_eleccion in category:
 
         # ----- si hay volver a hacerel requests y trabajar con el siguiente HTML -----
         if next_tag:
-            next_link = next_tag.a['href']
-            new_url = urljoin(new_url, next_link)
-            new_response = requests.get(new_url)
-            time.sleep(1)
-
+            try:
+                next_link = next_tag.a['href']
+                new_url = urljoin(new_url, next_link)
+                new_response = requests.get(new_url)
+            except Exception as e:
+                print("---- No more to analyse ----")
         else:
             break
     
