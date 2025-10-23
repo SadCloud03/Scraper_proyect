@@ -5,6 +5,33 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import time
 
+cache_autores = {}
+def obtener_autor(titulo):
+
+    if titulo in cache_autores:
+        return cache_autores[titulo]
+    
+    url_api = "https://openlibrary.org/search.json"
+    params = {'title' : titulo}
+
+    try:
+        respuesta = requests.get(url_api, params=params, timeout=5)
+        if respuesta.status_code == 200:
+            data = respuesta.json()
+            if data.get("numFound",0) > 0:
+                autor = data["docs"][0].get("author_name", ["desconocido"])[0]
+            else:
+                autor = "desconocido"
+        else:
+            autor = 'error de API'
+    except Exception as e:
+        autor = "Error"
+    
+    cache_autores[titulo] = autor
+    time.sleep(1)
+    return autor
+
+
 url = 'https://books.toscrape.com/'
 respuesta = requests.get(url)
 
@@ -49,6 +76,9 @@ if category_eleccion in category:
             # ---- nombre del libro -----
             title = book_information.h3.a['title']
 
+            # ---- autor del libro -----
+            autor = obtener_autor(title)
+
             # ---- precio del libro -----
             price_tag = book_information.find('div', class_='product_price')
             price = price_tag.find('p', class_='price_color').text
@@ -65,22 +95,25 @@ if category_eleccion in category:
             description_place_tag_link = book_information.h3.a['href']
             description_place_tag_complete_link = urljoin(new_url, description_place_tag_link)
             description_response = requests.get(description_place_tag_complete_link)
-            time.sleep(1.5)
+            time.sleep(1)
             soup_description = BeautifulSoup(description_response.content, 'lxml')
             product_tag = soup_description.find('div', id='product_description')
             if product_tag:
-                description = product_tag.find_next_sibling('p').text.strip()
-                description = description.replace('\n', ' ').strip()
+                des_tag = product_tag.find_next_sibling('p')
+                if des_tag:
+                    description = des_tag.text.replace('\n', ' ').strip()
             else:
                 description = 'No description'
 
             books.append({
                 'title' : title,
+                'author' : autor,
                 'stars' : stars,
                 'price' : price,
                 'stock' : disponibility,
                 'description' : description
             })
+
 
         # ----- si hay mas de una pagina en el apartado -----
         next_tag = soup_new.find('li', class_='next')
@@ -91,11 +124,9 @@ if category_eleccion in category:
             next_link = next_tag.a['href']
             new_url = urljoin(new_url, next_link)
             new_response = requests.get(new_url)
-            time.sleep(1.5)
+            time.sleep(1)
 
         else:
             break
     
 # terminando esto todo eta en la lista Books -----> primera parte del scraper lista
-
-
