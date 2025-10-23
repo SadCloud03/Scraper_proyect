@@ -1,77 +1,101 @@
+# ------- Scraper ------
+
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+import time
 
-# ------ Crear conexion con bookstoscrape -----
 url = 'https://books.toscrape.com/'
 respuesta = requests.get(url)
+
 soup = BeautifulSoup(respuesta.content, 'lxml')
 
-# ----- encontrar las categorias -----
-div_categoria = soup.find('ul', class_='nav nav-list')
-link_all_books = url + div_categoria.a['href']
-list_books = div_categoria.find('ul')
-books = list_books.find_all('li')
+etiqueta_categorias = soup.find('ul', class_='nav nav-list')
 
-# ----- Crear lista de las categorias -----
-categorias = {}
+# ----- diccionario para guardar links segun categoria -----
+category = {}
 
-# ----- Agregar a la lista link a todos los libros -----
-categorias['all books'] = link_all_books
+# ----- para todos los libros -----
+link_all_books = url + etiqueta_categorias.a['href']
+category['all books'] = link_all_books
 
-# ----- Agregar todas la categorias -----
-for categoria in books:
-    nombre = categoria.a.text.strip()
-    link = categoria.a['href']
-    categorias[nombre] = url + link
+# ----- por categorias -----
+etiqueta_book_category = etiqueta_categorias.find('ul')
+book_category = etiqueta_book_category.find_all('li')
+for cat in book_category:
+    nombre = cat.a.text.strip()
+    link = cat.a['href']
+    category[nombre] = url + link 
 
+category_eleccion = input('categoria a visitar: ')
 
-# ------ Eleccion de categoria a revisar para que no explote la compu o me hechen de la paginas -----
-print('----Categorias Disponibles----\n')
-for x, _ in categorias.items():
-    print(x)
+if category_eleccion in category:
+
+    new_url = category[category_eleccion]
+    new_response = requests.get(new_url)
     
+    books = []
 
-# ----- Ingreso al apartado en la pagina para reducir area de busqueda de libros -----
-eleccion = input('\nQue categoria le gustaria visitar: ')
-if eleccion in categorias:
-
-    url_eleccion = categorias[eleccion]
-    respuesta_eleccion = requests.get(url_eleccion)
-    
     while True:
-        # ----- busque de conexion -----
-        soup_eleccion = BeautifulSoup(respuesta_eleccion.content, 'lxml')
+        soup_new = BeautifulSoup(new_response.content, 'lxml')
 
-        libros = soup_eleccion.find_all('article', class_='product_pod')
-        
-        print("\n----Libros Disponibles----\n")
-        for libro in libros:
-            titulo = libro.h3.a['title']
-            estrellas_etiqueta = libro.find('p', class_='star-rating')
-            puntuacion = estrellas_etiqueta['class'][1] if estrellas_etiqueta else 'sin clasificar'
-            print(f"Titulo: {titulo} \nEstrellas: {puntuacion} \n")
+        seleccion_of_books = soup_new.find('ol', class_='row')
+        all_books_seleccion = seleccion_of_books.find_all('li')
 
-        etiqueta_next = soup_eleccion.find('li', class_='next')
+        for book in all_books_seleccion:
 
-        if etiqueta_next:
-            siguiente = etiqueta_next.a['href']
-            url_eleccion = '/'.join(url_eleccion.split('/')[:-1]) + '/' + siguiente
-            respuesta_eleccion = requests.get(url_eleccion)
-            decision = input('quieres ir a la siguiente pagina: (y/n) ')
-            if decision.lower() != 'y':
-                break
-        
+            book_information = book.find('article', class_='product_pod')
+
+            # ---- nombre del libro -----
+            title = book_information.h3.a['title']
+
+            # ---- precio del libro -----
+            price_tag = book_information.find('div', class_='product_price')
+            price = price_tag.find('p', class_='price_color').text
+
+            # ---- disponibilidad del libro ----
+            disponibility_tag = price_tag.find('p', class_='instock availability')
+            disponibility = disponibility_tag.text.strip()
+
+            # ----- cantidad de estrellas -----
+            stars_tag = book_information.find('p', class_='star-rating')
+            stars = stars_tag['class'][1] if stars_tag else 'not reviewd'
+
+            # ----- descripcion -----
+            description_place_tag_link = book_information.h3.a['href']
+            description_place_tag_complete_link = urljoin(new_url, description_place_tag_link)
+            description_response = requests.get(description_place_tag_complete_link)
+            time.sleep(1.5)
+            soup_description = BeautifulSoup(description_response.content, 'lxml')
+            product_tag = soup_description.find('div', id='product_description')
+            if product_tag:
+                description = product_tag.find_next_sibling('p').text.strip()
+                description = description.replace('\n', ' ').strip()
+            else:
+                description = 'No description'
+
+            books.append({
+                'title' : title,
+                'stars' : stars,
+                'price' : price,
+                'stock' : disponibility,
+                'description' : description
+            })
+
+        # ----- si hay mas de una pagina en el apartado -----
+        next_tag = soup_new.find('li', class_='next')
+
+
+        # ----- si hay volver a hacerel requests y trabajar con el siguiente HTML -----
+        if next_tag:
+            next_link = next_tag.a['href']
+            new_url = urljoin(new_url, next_link)
+            new_response = requests.get(new_url)
+            time.sleep(1.5)
+
         else:
             break
-    # ubiucacion_libros = soup_eleccion.find('ol', class_='row')
-    # ubicacion_titulos = ubiucacion_libros.find_all('h3')
-
-    # titulos = {}
-    # for libro in ubicacion_titulos:
-    #     titulo = libro.a['title']
-        
-    #     print('-',titulo)
-
-
+    
+# terminando esto todo eta en la lista Books -----> primera parte del scraper lista
 
 
