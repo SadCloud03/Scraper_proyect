@@ -5,4 +5,6 @@
 - bs4
 - lxml 
 - Sqlite3
+- time
+- pandas
 

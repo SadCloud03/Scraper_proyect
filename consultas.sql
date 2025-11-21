@@ -2,15 +2,15 @@
 
 
 -- 1er ejercicio (Listar todos los libros con su categoria y autor
-SELECT 
-    Libro.title AS Libro,
-    Categoria.name AS Categoria,
-    Autor.author AS Autor
-FROM
-    Libro
-JOIN Categoria ON Categoria.id_category = Libro.id_category
-JOIN LibroAutor ON LibroAutor.id_book = Libro.id_book
-JOIN Autor ON Autor.id_author = LibroAutor.id_author;
+-- SELECT 
+--     Libro.title AS Libro,
+--     Categoria.name AS Categoria,
+--     Autor.author AS Autor
+-- FROM
+--     Libro
+-- JOIN Categoria ON Categoria.id_category = Libro.id_category
+-- JOIN LibroAutor ON LibroAutor.id_book = Libro.id_book
+-- JOIN Autor ON Autor.id_author = LibroAutor.id_author;
 
 -- 2do ejercicio (contar cuantos autores hay por categoria)
 -- SELECT
@@ -172,3 +172,20 @@ JOIN Autor ON Autor.id_author = LibroAutor.id_author;
 --         ) AS MaxAutoresLibro
 --     );
 
+
+-- EJEMPLO DE USO DE INDICES EN SQLITE ---
+
+-- CONSULTA SIN INDICE --
+-- SELECT * 
+-- FROM Book
+-- WHERE Book.title LIKE 'Harry%';
+
+-- CREACION DE INDICE SOBRE (title) --
+-- CREATE INDEX idx_Book_title
+-- ON Book(title);
+
+-- VER SI REALMENTE FUNCIONA --
+-- EXPLAIN QUERY PLAN
+-- SELECT * 
+-- FROM Book
+-- WHERE title LIKE 'El se%';
